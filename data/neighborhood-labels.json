@@ -1,0 +1,10 @@
+[
+  {
+    "id": "citadel",
+    "name": "Erbil Citadel",
+    "lat": 36.1915,
+    "lng": 44.0092,
+    "minZoom": 10,
+    "priority": 1000
+  }
+]
