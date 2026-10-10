@@ -71,6 +71,7 @@
     padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
     padding-bottom: env(safe-area-inset-bottom, 0px);
     padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+    touch-action: manipulation;
   }
 }
 
@@ -95,7 +96,13 @@
   display: none;
 }
 
-/* Steady contrast while zooming — closer to the “zoomed-in” look at every level */
-.reraw-map .maplibregl-canvas {
-  filter: contrast(1.1) saturate(1.05) brightness(0.94);
+/* Pinch stays on the map (not the page). No CSS filter on the canvas — it breaks MapLibre zoom. */
+.reraw-map,
+.reraw-map .maplibregl-canvas,
+.reraw-map .maplibregl-canvas-container {
+  touch-action: none;
+}
+
+.reraw-map {
+  background: #f2efe9;
 }

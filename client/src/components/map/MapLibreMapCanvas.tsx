@@ -104,18 +104,49 @@ export function MapLibreMapCanvas({
   };
 
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
+    const el = containerRef.current;
+    if (!el || mapRef.current) return;
 
-    const map = new Map({
-      container: containerRef.current,
+    let cancelled = false;
+    let map: Map | null = null;
+    let resizeObserver: ResizeObserver | null = null;
+    const extraCleanups: Array<() => void> = [];
+
+    const attachResize = (instance: Map, node: HTMLElement) => {
+      const onResize = () => {
+        if (node.clientWidth >= 2 && node.clientHeight >= 2) instance.resize();
+      };
+      resizeObserver = new ResizeObserver(onResize);
+      resizeObserver.observe(node);
+      window.addEventListener("resize", onResize);
+      window.addEventListener("orientationchange", onResize);
+      extraCleanups.push(() => {
+        window.removeEventListener("resize", onResize);
+        window.removeEventListener("orientationchange", onResize);
+      });
+      requestAnimationFrame(() => {
+        onResize();
+        requestAnimationFrame(onResize);
+      });
+      instance.once("load", onResize);
+    };
+
+    const createMap = () => {
+      if (cancelled || mapRef.current || !containerRef.current) return;
+      const node = containerRef.current;
+      if (node.clientWidth < 2 || node.clientHeight < 2) return;
+
+    map = new Map({
+      container: node,
       style: MAP_STYLE_URL,
       center: ERBIL_CENTER,
-      zoom: startZoom(containerRef.current),
+      zoom: startZoom(node),
       minZoom: ERBIL_MIN_ZOOM,
       maxZoom: ERBIL_MAX_ZOOM,
       maxBounds: ERBIL_MAX_BOUNDS,
       attributionControl: false,
       fadeDuration: 0,
+      trackResize: true,
     });
     map.addControl(new NavigationControl({ visualizePitch: false }), "top-right");
     let styleFallbackApplied = false;
@@ -292,8 +323,19 @@ export function MapLibreMapCanvas({
     });
 
     mapRef.current = map;
+    attachResize(map, node);
+    };
+
+    const readyObserver = new ResizeObserver(() => createMap());
+    readyObserver.observe(el);
+    createMap();
+
     return () => {
-      map.remove();
+      cancelled = true;
+      readyObserver.disconnect();
+      resizeObserver?.disconnect();
+      for (const clean of extraCleanups) clean();
+      map?.remove();
       mapRef.current = null;
     };
   }, []);

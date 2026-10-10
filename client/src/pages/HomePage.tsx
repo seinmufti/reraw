@@ -56,7 +56,10 @@ function RouteCards({
   return (
     <div className="space-y-3 px-4 pb-8">
       {loading && (
-        <p className="text-sm text-muted-foreground">{t("loading")}</p>
+        <>
+          <div className="h-24 animate-pulse rounded-xl bg-muted" />
+          <div className="h-24 animate-pulse rounded-xl bg-muted" />
+        </>
       )}
       {error && <p className="text-sm text-destructive">{t("errorLoad")}</p>}
       {!loading && routes.length === 0 && (
