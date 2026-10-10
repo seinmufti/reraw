@@ -5,11 +5,18 @@ import { fileURLToPath } from "node:url";
 import type { ZodType } from "zod";
 
 function resolveDataDir(): string {
-  let dir = path.dirname(fileURLToPath(import.meta.url));
-  for (let i = 0; i < 8; i++) {
-    const candidate = path.join(dir, "data");
-    if (existsSync(candidate)) return candidate;
-    dir = path.dirname(dir);
+  const starts = [
+    path.dirname(fileURLToPath(import.meta.url)),
+    process.cwd(),
+    path.resolve(process.cwd(), ".."),
+  ];
+  for (const start of starts) {
+    let dir = start;
+    for (let i = 0; i < 8; i++) {
+      const candidate = path.join(dir, "data");
+      if (existsSync(candidate)) return candidate;
+      dir = path.dirname(dir);
+    }
   }
   return path.resolve(process.cwd(), "data");
 }

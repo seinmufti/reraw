@@ -9,9 +9,18 @@ const rootDir = import.meta.dirname;
 const repoRoot = path.resolve(rootDir, "..");
 const apiEntry = path.join(repoRoot, "server", "src", "app.ts");
 
-const designation = JSON.parse(
-  readFileSync(path.join(repoRoot, ".cursor", "designation.json"), "utf8"),
-) as { devPort: number };
+function readDevPort(): number {
+  try {
+    const designation = JSON.parse(
+      readFileSync(path.join(repoRoot, ".cursor", "designation.json"), "utf8"),
+    ) as { devPort: number };
+    return designation.devPort;
+  } catch {
+    return 5177;
+  }
+}
+
+const designation = { devPort: readDevPort() };
 
 /** Serves the Express API from the Vite dev server so dev uses a single port. */
 function apiMiddleware(): Plugin {

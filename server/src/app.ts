@@ -13,6 +13,7 @@ import { roadPathFor } from "./osrm.js";
 const ADMIN_ENABLED = process.env.ADMIN_ENABLED !== "false";
 
 export const app = express();
+export default app;
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
 
