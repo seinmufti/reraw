@@ -10,7 +10,7 @@ type AppTitleProps = {
 
 export function AppTitle({ className, as: Tag = "h1", style }: AppTitleProps) {
   return (
-    <Tag dir="rtl" lang="ckb" className={cn("app-title", className)} style={style}>
+    <Tag lang="en" className={cn("app-title", className)} style={style}>
       {t("appName")}
     </Tag>
   );

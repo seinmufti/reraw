@@ -9,7 +9,7 @@ export function SiteFooter() {
   );
 
   return (
-    <footer className="shrink-0 border-t bg-background px-4 py-3">
+    <footer className="mt-auto shrink-0 border-t bg-background px-4 py-3 pb-8">
       <div className="mx-auto flex max-w-md flex-col items-center gap-1">
         <a
           href={NORDLYS_URL}

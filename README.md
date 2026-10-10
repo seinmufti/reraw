@@ -35,7 +35,6 @@ Serves the built client from `client/dist` and the API on port **5177** (overrid
 | File | Purpose |
 |------|---------|
 | [`data/routes.json`](data/routes.json) | Bus routes, waypoints, stops |
-| [`data/neighborhood-labels.json`](data/neighborhood-labels.json) | Map labels for neighborhoods |
 | [`data/vehicles.json`](data/vehicles.json) | Reserved for future live tracking (`GET /api/vehicles`) |
 
 Route shape is validated with Zod in [`shared/types.ts`](shared/types.ts).

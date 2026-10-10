@@ -9,7 +9,6 @@ import { MapCanvas } from "@/components/map/MapCanvas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { t } from "@/i18n/en";
 
@@ -75,16 +74,10 @@ function RoutesPanel({
                 style={{ backgroundColor: route.color }}
               />
               <Bus className="h-4 w-4 opacity-70" />
-              {route.shortCode} — {route.name}
+              {route.name}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 p-3 pt-1 text-sm">
-            <p className="text-muted-foreground">
-              <span className="font-medium text-foreground">
-                {t("direction")}:{" "}
-              </span>
-              {route.directionSummary}
-            </p>
             {route.neighborhoodsServed.length > 0 && (
               <div>
                 <p className="mb-1 font-medium">{t("neighborhoodsServed")}</p>
@@ -125,18 +118,8 @@ export function HomePage() {
   } | null>(null);
 
   const routesQuery = useQuery({ queryKey: ["routes"], queryFn: api.getRoutes });
-  const labelsQuery = useQuery({
-    queryKey: ["labels"],
-    queryFn: api.getNeighborhoodLabels,
-  });
 
   const routes = routesQuery.data ?? [];
-  const labels = labelsQuery.data ?? [];
-
-  const selectedRoute = useMemo(
-    () => routes.find((r) => r.id === selectedRouteId) ?? null,
-    [routes, selectedRouteId],
-  );
 
   const popupStop = useMemo(() => {
     if (!stopPopup) return null;
@@ -144,8 +127,8 @@ export function HomePage() {
     return route?.stops.find((s) => s.id === stopPopup.stopId) ?? null;
   }, [routes, stopPopup]);
 
-  const loading = routesQuery.isLoading || labelsQuery.isLoading;
-  const error = routesQuery.isError || labelsQuery.isError;
+  const loading = routesQuery.isLoading;
+  const error = routesQuery.isError;
 
   const routesPanel = (
     <RoutesPanel
@@ -158,81 +141,44 @@ export function HomePage() {
   );
 
   return (
-    <div className="flex h-dvh flex-col">
-      <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-        <div className="border-b p-4 md:hidden">
-          <AppTitle />
-        </div>
-
-        <aside className="hidden h-full w-[360px] flex-col border-r md:flex">
-        <div className="p-4">
-          <AppTitle />
-        </div>
-        <Separator />
-          <ScrollArea className="flex-1">{routesPanel}</ScrollArea>
-        </aside>
-
-        <div className="flex min-h-0 flex-1 flex-col">
-          <div className="relative min-h-[45dvh] flex-1">
-          <MapCanvas
-            routes={routes}
-            labels={labels}
-            selectedRouteId={selectedRouteId}
-            onStopClick={(routeId, stopId) => setStopPopup({ routeId, stopId })}
-            className="absolute inset-0 h-full w-full"
-          />
-          {popupStop && (
-            <Card className="absolute bottom-4 left-4 z-10 max-w-xs shadow-lg">
-              <CardHeader className="p-3 pb-1">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <MapPin className="h-4 w-4" />
-                  {popupStop.name}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 p-3 pt-0 text-sm">
-                <p>{stopTypeLabel(popupStop.type)}</p>
-                {popupStop.notes && (
-                  <p className="text-muted-foreground">{popupStop.notes}</p>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setStopPopup(null)}
-                >
-                  {t("cancel")}
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-          {selectedRoute && (
-            <Card className="absolute right-4 top-4 z-10 hidden max-w-sm shadow-lg md:block">
-              <CardHeader className="p-3">
-                <CardTitle className="text-base">{selectedRoute.name}</CardTitle>
-              </CardHeader>
-              <CardContent className="max-h-48 space-y-1 overflow-auto p-3 pt-0 text-sm">
-                <p className="font-medium">{t("stops")}</p>
-                {selectedRoute.stops.length === 0 ? (
-                  <p className="text-muted-foreground">—</p>
-                ) : (
-                  selectedRoute.stops.map((s) => (
-                    <p key={s.id}>
-                      {s.name}{" "}
-                      <span className="text-muted-foreground">
-                        ({stopTypeLabel(s.type)})
-                      </span>
-                    </p>
-                  ))
-                )}
-              </CardContent>
-            </Card>
-          )}
-          </div>
-
-          <div className="max-h-[38dvh] shrink-0 overflow-y-auto border-t md:hidden">
-            {routesPanel}
-          </div>
-        </div>
+    <div className="flex min-h-full flex-col">
+      <div className="shrink-0 border-b p-4">
+        <AppTitle />
       </div>
+
+      <div className="relative h-[48svh] min-h-[220px] shrink-0">
+        <MapCanvas
+          routes={routes}
+          selectedRouteId={selectedRouteId}
+          onStopClick={(routeId, stopId) => setStopPopup({ routeId, stopId })}
+          className="absolute inset-0 h-full w-full"
+        />
+        {popupStop && (
+          <Card className="absolute bottom-4 left-4 z-10 max-w-xs shadow-lg">
+            <CardHeader className="p-3 pb-1">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <MapPin className="h-4 w-4" />
+                {popupStop.name}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 p-3 pt-0 text-sm">
+              <p>{stopTypeLabel(popupStop.type)}</p>
+              {popupStop.notes && (
+                <p className="text-muted-foreground">{popupStop.notes}</p>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setStopPopup(null)}
+              >
+                {t("cancel")}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      <div className="shrink-0 border-t">{routesPanel}</div>
       <SiteFooter />
     </div>
   );

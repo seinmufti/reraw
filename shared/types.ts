@@ -19,27 +19,15 @@ export const StopSchema = z.object({
 export const RouteSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
-  shortCode: z.string().min(1),
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
-  directionSummary: z.string().min(1),
   waypoints: z.array(LatLngSchema),
+  /** Road-following polyline between waypoints (filled on save). */
+  path: z.array(LatLngSchema).optional(),
   neighborhoodsServed: z.array(z.string()),
   stops: z.array(StopSchema),
 });
 
 export const RoutesFileSchema = z.array(RouteSchema);
-
-export const NeighborhoodLabelSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  lat: z.number().min(-90).max(90),
-  lng: z.number().min(-180).max(180),
-  minZoom: z.number().min(0).max(22).optional(),
-  /** Higher = wins label collisions (stays visible; others hide or shift). */
-  priority: z.number().optional(),
-});
-
-export const NeighborhoodLabelsFileSchema = z.array(NeighborhoodLabelSchema);
 
 export const VehicleSchema = z.object({
   routeId: z.string().min(1),
@@ -54,7 +42,6 @@ export type LatLng = z.infer<typeof LatLngSchema>;
 export type StopType = z.infer<typeof StopTypeSchema>;
 export type Stop = z.infer<typeof StopSchema>;
 export type Route = z.infer<typeof RouteSchema>;
-export type NeighborhoodLabel = z.infer<typeof NeighborhoodLabelSchema>;
 export type Vehicle = z.infer<typeof VehicleSchema>;
 
 export const ERBIL_CENTER: [number, number] = [44.009, 36.191];

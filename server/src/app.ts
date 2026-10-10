@@ -1,13 +1,14 @@
 import cors from "cors";
 import express from "express";
+import { z } from "zod";
 import {
-  NeighborhoodLabelSchema,
-  NeighborhoodLabelsFileSchema,
+  LatLngSchema,
   RouteSchema,
   RoutesFileSchema,
   VehiclesFileSchema,
 } from "../../shared/types.js";
 import { readJsonFile, writeJsonFile } from "./jsonStore.js";
+import { roadPathFor } from "./osrm.js";
 
 const ADMIN_ENABLED = process.env.ADMIN_ENABLED !== "false";
 
@@ -29,6 +30,20 @@ function adminOnly(
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
+});
+
+app.post("/api/directions", async (req, res) => {
+  try {
+    const waypoints = z.array(LatLngSchema).parse(req.body.waypoints);
+    if (waypoints.length < 2) {
+      res.json({ coordinates: waypoints.map((w) => [w.lng, w.lat]) });
+      return;
+    }
+    const coordinates = await roadPathFor(waypoints);
+    res.json({ coordinates });
+  } catch (err) {
+    res.status(502).json({ error: String(err) });
+  }
 });
 
 app.get("/api/routes", async (_req, res) => {
@@ -60,7 +75,7 @@ app.put("/api/routes/:id", adminOnly, async (req, res) => {
   try {
     const route = RouteSchema.parse({ ...req.body, id: req.params.id });
     const routes = await readJsonFile("routes.json", RoutesFileSchema);
-    const idx = routes.findIndex((r) => r.id === req.params.id);
+    const idx = routes.findIndex((r) => r.id === route.id);
     if (idx === -1) {
       res.status(404).json({ error: "Route not found" });
       return;
@@ -82,90 +97,6 @@ app.delete("/api/routes/:id", adminOnly, async (req, res) => {
       return;
     }
     await writeJsonFile("routes.json", next, RoutesFileSchema);
-    res.status(204).send();
-  } catch (err) {
-    res.status(500).json({ error: String(err) });
-  }
-});
-
-app.get("/api/neighborhood-labels", async (_req, res) => {
-  try {
-    const labels = await readJsonFile(
-      "neighborhood-labels.json",
-      NeighborhoodLabelsFileSchema,
-    );
-    res.json(labels);
-  } catch (err) {
-    res.status(500).json({ error: String(err) });
-  }
-});
-
-app.post("/api/neighborhood-labels", adminOnly, async (req, res) => {
-  try {
-    const label = NeighborhoodLabelSchema.parse(req.body);
-    const labels = await readJsonFile(
-      "neighborhood-labels.json",
-      NeighborhoodLabelsFileSchema,
-    );
-    if (labels.some((l) => l.id === label.id)) {
-      res.status(409).json({ error: "Label id already exists" });
-      return;
-    }
-    labels.push(label);
-    await writeJsonFile(
-      "neighborhood-labels.json",
-      labels,
-      NeighborhoodLabelsFileSchema,
-    );
-    res.status(201).json(label);
-  } catch (err) {
-    res.status(400).json({ error: String(err) });
-  }
-});
-
-app.put("/api/neighborhood-labels/:id", adminOnly, async (req, res) => {
-  try {
-    const label = NeighborhoodLabelSchema.parse({
-      ...req.body,
-      id: req.params.id,
-    });
-    const labels = await readJsonFile(
-      "neighborhood-labels.json",
-      NeighborhoodLabelsFileSchema,
-    );
-    const idx = labels.findIndex((l) => l.id === req.params.id);
-    if (idx === -1) {
-      res.status(404).json({ error: "Label not found" });
-      return;
-    }
-    labels[idx] = label;
-    await writeJsonFile(
-      "neighborhood-labels.json",
-      labels,
-      NeighborhoodLabelsFileSchema,
-    );
-    res.json(label);
-  } catch (err) {
-    res.status(400).json({ error: String(err) });
-  }
-});
-
-app.delete("/api/neighborhood-labels/:id", adminOnly, async (req, res) => {
-  try {
-    const labels = await readJsonFile(
-      "neighborhood-labels.json",
-      NeighborhoodLabelsFileSchema,
-    );
-    const next = labels.filter((l) => l.id !== req.params.id);
-    if (next.length === labels.length) {
-      res.status(404).json({ error: "Label not found" });
-      return;
-    }
-    await writeJsonFile(
-      "neighborhood-labels.json",
-      next,
-      NeighborhoodLabelsFileSchema,
-    );
     res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: String(err) });

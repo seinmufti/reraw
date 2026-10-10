@@ -13,8 +13,9 @@ import {
   type MapMouseEvent,
 } from "maplibre-gl";
 import { LocateFixed } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { useRoadPaths } from "@/hooks/useRoadPaths";
 import { t } from "@/i18n/en";
 import { scheduleMinorRoadBoost } from "@/lib/boostMinorRoads";
 import { scheduleSecondaryRoadBoost } from "@/lib/boostSecondaryRoads";
@@ -26,7 +27,7 @@ import { MAP_STYLE_URL, mapStyleFallback } from "@/lib/mapStyle";
 import {
   allStopsCollection,
   draftWaypointsCollection,
-  labelsToPointCollection,
+  hoverSegmentCollection,
   routesToLineCollection,
 } from "./mapGeoJson";
 
@@ -35,8 +36,18 @@ import type { MapCanvasProps } from "./mapCanvasTypes";
 
 const ROUTES_SOURCE = "reraw-routes";
 const STOPS_SOURCE = "reraw-stops";
-const LABELS_SOURCE = "reraw-labels";
 const DRAFT_SOURCE = "reraw-draft";
+const HOVER_SOURCE = "reraw-hover-segment";
+const DRAFT_PATH_ID = "__draft__";
+const PHONE_ZOOM_OUT = 0.5;
+
+const PHONE_MAX_WIDTH_PX = 767;
+
+/** Phone-sized maps (real phones and the PC phone frame) get a slightly wider view of the city. */
+function startZoom(container: HTMLElement | null) {
+  const isPhoneSized = (container?.clientWidth ?? 0) <= PHONE_MAX_WIDTH_PX;
+  return isPhoneSized ? ERBIL_DEFAULT_ZOOM - PHONE_ZOOM_OUT : ERBIL_DEFAULT_ZOOM;
+}
 
 function upsertGeoJsonSource(map: Map, id: string, data: GeoJSON.GeoJSON) {
   const src = map.getSource(id);
@@ -49,9 +60,9 @@ function upsertGeoJsonSource(map: Map, id: string, data: GeoJSON.GeoJSON) {
 
 export function MapLibreMapCanvas({
   routes,
-  labels,
   selectedRouteId,
   draftWaypoints = [],
+  hoveredWaypointIndex = null,
   clickMode = "view",
   onMapClick,
   onStopClick,
@@ -59,20 +70,34 @@ export function MapLibreMapCanvas({
 }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
+  const roadPathLists = useMemo(
+    () => [
+      ...routes.map((route) => ({
+        id: route.id,
+        waypoints: route.waypoints,
+        stored: route.path,
+      })),
+      { id: DRAFT_PATH_ID, waypoints: draftWaypoints },
+    ],
+    [routes, draftWaypoints],
+  );
+  const roadPaths = useRoadPaths(roadPathLists);
   const propsRef = useRef({
     routes,
-    labels,
     selectedRouteId,
     draftWaypoints,
+    hoveredWaypointIndex,
+    roadPaths,
     clickMode,
     onMapClick,
     onStopClick,
   });
   propsRef.current = {
     routes,
-    labels,
     selectedRouteId,
     draftWaypoints,
+    hoveredWaypointIndex,
+    roadPaths,
     clickMode,
     onMapClick,
     onStopClick,
@@ -85,7 +110,7 @@ export function MapLibreMapCanvas({
       container: containerRef.current,
       style: MAP_STYLE_URL,
       center: ERBIL_CENTER,
-      zoom: ERBIL_DEFAULT_ZOOM,
+      zoom: startZoom(containerRef.current),
       minZoom: ERBIL_MIN_ZOOM,
       maxZoom: ERBIL_MAX_ZOOM,
       maxBounds: ERBIL_MAX_BOUNDS,
@@ -93,7 +118,6 @@ export function MapLibreMapCanvas({
       fadeDuration: 0,
     });
     map.addControl(new NavigationControl({ visualizePitch: false }), "top-right");
-
     let styleFallbackApplied = false;
     let styleHasLoaded = false;
     map.on("error", (e) => {
@@ -112,7 +136,7 @@ export function MapLibreMapCanvas({
       upsertGeoJsonSource(
         map,
         ROUTES_SOURCE,
-        routesToLineCollection(p.routes, p.selectedRouteId),
+        routesToLineCollection(p.routes, p.selectedRouteId, p.roadPaths),
       );
       map.addLayer({
         id: "routes-line",
@@ -156,58 +180,10 @@ export function MapLibreMapCanvas({
         },
       });
 
-      upsertGeoJsonSource(map, LABELS_SOURCE, labelsToPointCollection(p.labels));
-      map.addLayer({
-        id: "labels-text",
-        type: "symbol",
-        source: LABELS_SOURCE,
-        filter: [">=", ["zoom"], ["get", "minZoom"]],
-        layout: {
-          "text-field": ["get", "name"],
-          "text-size": [
-            "case",
-            ["==", ["get", "labelId"], "citadel"],
-            13,
-            12,
-          ],
-          "text-font": ["Noto Sans Regular"],
-          "text-variable-anchor": ["center", "top", "bottom", "left", "right"],
-          "text-radial-offset": 0.6,
-          "text-justify": "auto",
-          "text-max-width": 9,
-          // MapLibre draws lower symbol-sort-key on top; invert app priority (higher = more important).
-          "text-allow-overlap": [
-            "case",
-            [">=", ["get", "priority"], 500],
-            true,
-            false,
-          ],
-          "text-ignore-placement": [
-            "case",
-            [">=", ["get", "priority"], 500],
-            true,
-            false,
-          ],
-          "text-optional": [
-            "case",
-            [">=", ["get", "priority"], 500],
-            false,
-            true,
-          ],
-          "text-padding": 8,
-          "symbol-sort-key": ["*", -1, ["get", "priority"]],
-        },
-        paint: {
-          "text-color": "#202124",
-          "text-halo-color": "#ffffff",
-          "text-halo-width": 2.5,
-        },
-      });
-
       upsertGeoJsonSource(
         map,
         DRAFT_SOURCE,
-        draftWaypointsCollection(p.draftWaypoints),
+        draftWaypointsCollection(p.draftWaypoints, p.roadPaths[DRAFT_PATH_ID]),
       );
       map.addLayer({
         id: "draft-line",
@@ -232,6 +208,51 @@ export function MapLibreMapCanvas({
           "circle-stroke-color": "#fff",
         },
       });
+
+      upsertGeoJsonSource(
+        map,
+        HOVER_SOURCE,
+        hoverSegmentCollection(
+          p.draftWaypoints,
+          p.hoveredWaypointIndex,
+          p.roadPaths[DRAFT_PATH_ID],
+        ),
+      );
+      map.addLayer({
+        id: "hover-segment-casing",
+        type: "line",
+        source: HOVER_SOURCE,
+        filter: ["==", ["geometry-type"], "LineString"],
+        paint: {
+          "line-color": "#ffffff",
+          "line-width": 12,
+          "line-opacity": 0.9,
+        },
+        layout: { "line-cap": "round", "line-join": "round" },
+      });
+      map.addLayer({
+        id: "hover-segment-line",
+        type: "line",
+        source: HOVER_SOURCE,
+        filter: ["==", ["geometry-type"], "LineString"],
+        paint: {
+          "line-color": "#2563eb",
+          "line-width": 7,
+        },
+        layout: { "line-cap": "round", "line-join": "round" },
+      });
+      map.addLayer({
+        id: "hover-segment-point",
+        type: "circle",
+        source: HOVER_SOURCE,
+        filter: ["==", ["geometry-type"], "Point"],
+        paint: {
+          "circle-radius": 9,
+          "circle-color": "#2563eb",
+          "circle-stroke-width": 3,
+          "circle-stroke-color": "#ffffff",
+        },
+      });
     };
 
     map.on("style.load", () => {
@@ -243,11 +264,6 @@ export function MapLibreMapCanvas({
       installDetailRoadsOverlay(map);
       installSecondaryRoadsOverlay(map);
       installNeighborhoodLabelsOverlay(map);
-      upsertGeoJsonSource(
-        map,
-        LABELS_SOURCE,
-        labelsToPointCollection(propsRef.current.labels),
-      );
     });
 
     map.on("click", (e: MapMouseEvent) => {
@@ -292,14 +308,22 @@ export function MapLibreMapCanvas({
       upsertGeoJsonSource(
         map,
         ROUTES_SOURCE,
-        routesToLineCollection(p.routes, p.selectedRouteId),
+        routesToLineCollection(p.routes, p.selectedRouteId, p.roadPaths),
       );
       upsertGeoJsonSource(map, STOPS_SOURCE, allStopsCollection(p.routes));
-      upsertGeoJsonSource(map, LABELS_SOURCE, labelsToPointCollection(p.labels));
       upsertGeoJsonSource(
         map,
         DRAFT_SOURCE,
-        draftWaypointsCollection(p.draftWaypoints),
+        draftWaypointsCollection(p.draftWaypoints, p.roadPaths[DRAFT_PATH_ID]),
+      );
+      upsertGeoJsonSource(
+        map,
+        HOVER_SOURCE,
+        hoverSegmentCollection(
+          p.draftWaypoints,
+          p.hoveredWaypointIndex,
+          p.roadPaths[DRAFT_PATH_ID],
+        ),
       );
       map.setPaintProperty("routes-line", "line-width", [
         "case",
@@ -311,17 +335,13 @@ export function MapLibreMapCanvas({
       ]);
     };
 
-    const runSync = () => {
-      if (!map.isStyleLoaded()) return;
-      sync();
-    };
-
-    runSync();
-    map.on("style.load", runSync);
+    // isStyleLoaded() stays false while tiles load, which would drop data that arrives mid-load.
+    sync();
+    map.on("style.load", sync);
     return () => {
-      map.off("style.load", runSync);
+      map.off("style.load", sync);
     };
-  }, [routes, labels, selectedRouteId, draftWaypoints]);
+  }, [routes, selectedRouteId, draftWaypoints, hoveredWaypointIndex, roadPaths]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -332,7 +352,7 @@ export function MapLibreMapCanvas({
   const resetView = () => {
     mapRef.current?.flyTo({
       center: ERBIL_CENTER,
-      zoom: ERBIL_DEFAULT_ZOOM,
+      zoom: startZoom(containerRef.current),
       duration: 700,
     });
   };

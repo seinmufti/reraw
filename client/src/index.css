@@ -39,14 +39,34 @@
   .app-title {
     display: block;
     width: 100%;
-    direction: rtl;
     text-align: start;
-    font-family: "Vazirmatn", "Noto Sans Arabic", system-ui, sans-serif;
     font-weight: 700;
     font-size: 1.5rem;
     line-height: 1.35;
     letter-spacing: 0.01em;
     font-feature-settings: "kern" 1;
+  }
+  .app-title:lang(ckb) {
+    direction: rtl;
+    font-family: "Vazirmatn", "Noto Sans Arabic", system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  /* Phone: exactly one screen (100svh) including safe insets. */
+  .mobile-shell {
+    position: fixed;
+    inset: 0;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: none;
+    height: 100svh;
+    max-height: 100svh;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+      env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
 }
 
