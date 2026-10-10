@@ -21,6 +21,7 @@ import { scheduleSecondaryRoadBoost } from "@/lib/boostSecondaryRoads";
 import { installDetailRoadsOverlay } from "@/lib/detailRoadsOverlay";
 import { installSecondaryRoadsOverlay } from "@/lib/secondaryRoadsOverlay";
 import { boostPlaceLabelVisibility } from "@/lib/boostPlaceLabels";
+import { installNeighborhoodLabelsOverlay } from "@/lib/neighborhoodLabelsOverlay";
 import { MAP_STYLE_URL, mapStyleFallback } from "@/lib/mapStyle";
 import {
   allStopsCollection,
@@ -241,6 +242,7 @@ export function MapLibreMapCanvas({
       setupLayers();
       installDetailRoadsOverlay(map);
       installSecondaryRoadsOverlay(map);
+      installNeighborhoodLabelsOverlay(map);
       upsertGeoJsonSource(
         map,
         LABELS_SOURCE,

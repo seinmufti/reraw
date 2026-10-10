@@ -23,6 +23,8 @@ export function boostPlaceLabelVisibility(map: Map) {
         "all",
         baseFilter,
         ["within", ERBIL_M120_REGION],
+        // Drawn by neighborhoodLabelsOverlay instead, so they show when zoomed out too.
+        ["!", ["in", ["get", "class"], ["literal", ["suburb", "quarter", "neighbourhood"]]]],
       ] as FilterSpecification);
 
       map.setLayoutProperty(id, "text-allow-overlap", false);

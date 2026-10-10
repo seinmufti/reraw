@@ -13,7 +13,8 @@
     "preview": "npm run preview -w client",
     "dev:check": "node scripts/verify-dev-network.mjs --wait",
     "firewall:dev": "powershell -ExecutionPolicy Bypass -File scripts/allow-dev-firewall.ps1",
-    "build:detail-roads": "node scripts/build-detail-roads-geojson.mjs"
+    "build:detail-roads": "node scripts/build-detail-roads-geojson.mjs",
+    "build:neighborhoods": "node scripts/build-neighborhood-labels.mjs"
   },
   "devDependencies": {
     "@mapbox/vector-tile": "^3.0.0",
