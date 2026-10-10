@@ -9,7 +9,6 @@ import { MapCanvas } from "@/components/map/MapCanvas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { t } from "@/i18n/en";
 
 function stopTypeLabel(type: Route["stops"][number]["type"]) {
@@ -93,19 +92,6 @@ function RoutesPanel({
           </CardContent>
         </Card>
       ))}
-
-      <Separator className="my-4" />
-      <h2 className="text-sm font-semibold">{t("legend")}</h2>
-      <ul className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-muted-foreground">
-        <li className="flex items-center gap-2">
-          <span className="h-3 w-3 shrink-0 rounded-full bg-[#34a853]" />
-          {t("stopHopOn")}
-        </li>
-        <li className="flex items-center gap-2">
-          <span className="h-3 w-3 shrink-0 rounded-full bg-[#ea4335]" />
-          {t("stopEnd")}
-        </li>
-      </ul>
     </div>
   );
 }

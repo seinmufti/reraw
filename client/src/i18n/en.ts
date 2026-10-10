@@ -7,7 +7,6 @@ const en = {
   stopHopOn: "Hop-on area",
   stopTerminal: "Terminal / gathering",
   stopEnd: "End of line",
-  legend: "Legend",
   resetMapView: "Reset map view",
   showAllRoutes: "Show all routes",
   admin: "Admin",
