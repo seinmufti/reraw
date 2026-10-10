@@ -14,7 +14,7 @@
       "installCommand": "npm install --prefix ..",
       "functions": {
         "src/app.ts": {
-          "includeFiles": "../data/**"
+          "includeFiles": "{../data/**,../../data/**,data/**}"
         }
       }
     }

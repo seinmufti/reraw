@@ -3,6 +3,13 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ZodType } from "zod";
+import routesSeed from "../../data/routes.json" with { type: "json" };
+import vehiclesSeed from "../../data/vehicles.json" with { type: "json" };
+
+const bundledSeeds: Record<string, unknown> = {
+  "routes.json": routesSeed,
+  "vehicles.json": vehiclesSeed,
+};
 
 function resolveDataDir(): string {
   const starts = [
@@ -32,6 +39,8 @@ export async function readJsonFile<T>(
   try {
     raw = await fs.readFile(filePath, "utf-8");
   } catch {
+    const seed = bundledSeeds[filename];
+    if (seed !== undefined) return schema.parse(seed);
     raw = "[]";
   }
   const parsed = JSON.parse(raw) as unknown;
