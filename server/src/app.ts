@@ -11,6 +11,14 @@ import { readJsonFile, writeJsonFile } from "./jsonStore.js";
 import { roadPathFor } from "./osrm.js";
 
 const ADMIN_ENABLED = process.env.ADMIN_ENABLED !== "false";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "2001";
+
+function adminPasswordFrom(req: express.Request): string {
+  const header = req.headers["x-admin-password"];
+  if (typeof header === "string") return header;
+  if (Array.isArray(header)) return header[0] ?? "";
+  return "";
+}
 
 export const app = express();
 export default app;
@@ -18,7 +26,7 @@ app.use(cors());
 app.use(express.json({ limit: "2mb" }));
 
 function adminOnly(
-  _req: express.Request,
+  req: express.Request,
   res: express.Response,
   next: express.NextFunction,
 ) {
@@ -26,10 +34,23 @@ function adminOnly(
     res.status(403).json({ error: "Admin writes are disabled" });
     return;
   }
+  if (adminPasswordFrom(req) !== ADMIN_PASSWORD) {
+    res.status(401).json({ error: "Wrong password" });
+    return;
+  }
   next();
 }
 
 app.get("/api/health", (_req, res) => {
+  res.json({ ok: true });
+});
+
+app.post("/api/admin/unlock", (req, res) => {
+  const password = typeof req.body?.password === "string" ? req.body.password : "";
+  if (password !== ADMIN_PASSWORD) {
+    res.status(401).json({ error: "Wrong password" });
+    return;
+  }
   res.json({ ok: true });
 });
 

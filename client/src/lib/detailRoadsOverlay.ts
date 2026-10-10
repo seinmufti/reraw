@@ -1,5 +1,6 @@
 import { ERBIL_DEFAULT_ZOOM, ERBIL_MIN_ZOOM } from "@shared/types";
 import type { Map } from "maplibre-gl";
+import { publicAssetPath } from "@/lib/router-basename";
 
 const SOURCE_ID = "reraw-detail-roads";
 const LAYER_ID = "reraw-detail-roads-line";
@@ -8,7 +9,7 @@ let detailRoadsPromise: Promise<GeoJSON.FeatureCollection> | null = null;
 
 function loadDetailRoads() {
   if (!detailRoadsPromise) {
-    detailRoadsPromise = fetch("/detail-roads.geojson").then((r) => {
+    detailRoadsPromise = fetch(publicAssetPath("/detail-roads.geojson")).then((r) => {
       if (!r.ok) throw new Error(`detail-roads.geojson: ${r.status}`);
       return r.json() as Promise<GeoJSON.FeatureCollection>;
     });

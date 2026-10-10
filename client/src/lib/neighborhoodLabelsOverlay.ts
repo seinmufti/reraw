@@ -4,6 +4,7 @@ import type {
   FilterSpecification,
   Map,
 } from "maplibre-gl";
+import { publicAssetPath } from "@/lib/router-basename";
 import { ERBIL_M120_REGION } from "./erbilM120Region";
 
 const SOURCE_ID = "reraw-neighborhood-places";
@@ -17,7 +18,7 @@ let placesPromise: Promise<GeoJSON.FeatureCollection> | null = null;
 
 function loadPlaces() {
   if (!placesPromise) {
-    placesPromise = fetch("/neighborhood-places.geojson").then((r) => {
+    placesPromise = fetch(publicAssetPath("/neighborhood-places.geojson")).then((r) => {
       if (!r.ok) throw new Error(`neighborhood-places.geojson: ${r.status}`);
       return r.json() as Promise<GeoJSON.FeatureCollection>;
     });

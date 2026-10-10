@@ -1,5 +1,6 @@
 import { ERBIL_DEFAULT_ZOOM, ERBIL_MIN_ZOOM } from "@shared/types";
 import type { DataDrivenPropertyValueSpecification, Map } from "maplibre-gl";
+import { publicAssetPath } from "@/lib/router-basename";
 
 const asWidth = (expr: unknown) =>
   expr as DataDrivenPropertyValueSpecification<number>;
@@ -12,7 +13,7 @@ let secondaryRoadsPromise: Promise<GeoJSON.FeatureCollection> | null = null;
 
 function loadSecondaryRoads() {
   if (!secondaryRoadsPromise) {
-    secondaryRoadsPromise = fetch("/secondary-roads.geojson").then((r) => {
+    secondaryRoadsPromise = fetch(publicAssetPath("/secondary-roads.geojson")).then((r) => {
       if (!r.ok) throw new Error(`secondary-roads.geojson: ${r.status}`);
       return r.json() as Promise<GeoJSON.FeatureCollection>;
     });

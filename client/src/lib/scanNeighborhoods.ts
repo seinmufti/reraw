@@ -1,3 +1,5 @@
+import { publicAssetPath } from "@/lib/router-basename";
+
 type Place = {
   name: string;
   lng: number;
@@ -62,7 +64,7 @@ function placeName(props: GeoJSON.GeoJsonProperties): string | null {
 
 export function loadNeighborhoodPlaces(): Promise<Place[]> {
   if (!placesPromise) {
-    placesPromise = fetch("/neighborhood-places.geojson")
+    placesPromise = fetch(publicAssetPath("/neighborhood-places.geojson"))
       .then((res) => {
         if (!res.ok) throw new Error(`neighborhood-places.geojson: ${res.status}`);
         return res.json() as Promise<GeoJSON.FeatureCollection>;
