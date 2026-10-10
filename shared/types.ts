@@ -58,7 +58,8 @@ export type NeighborhoodLabel = z.infer<typeof NeighborhoodLabelSchema>;
 export type Vehicle = z.infer<typeof VehicleSchema>;
 
 export const ERBIL_CENTER: [number, number] = [44.009, 36.191];
-export const ERBIL_DEFAULT_ZOOM = 10.5;
+/** Default city view; alleys at this zoom come from `detail-roads.geojson` overlay. */
+export const ERBIL_DEFAULT_ZOOM = 10.75;
 /** MapLibre maxBounds: SW and NE corners as [lng, lat]. */
 export const ERBIL_MAX_BOUNDS: [[number, number], [number, number]] = [
   [43.82, 36.02],

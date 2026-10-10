@@ -7,12 +7,20 @@
     "server"
   ],
   "scripts": {
-    "dev": "concurrently -n client,server -c blue,green \"npm run dev -w client\" \"npm run dev -w server\"",
+    "dev": "node scripts/print-dev-urls.mjs && concurrently -n web,net -c blue,yellow \"npm run dev -w client\" \"node scripts/verify-dev-network.mjs --wait\"",
     "build": "npm run build -w client && npm run build -w server",
     "start": "npm run start -w server",
-    "preview": "npm run preview -w client"
+    "preview": "npm run preview -w client",
+    "dev:check": "node scripts/verify-dev-network.mjs --wait",
+    "firewall:dev": "powershell -ExecutionPolicy Bypass -File scripts/allow-dev-firewall.ps1",
+    "build:detail-roads": "node scripts/build-detail-roads-geojson.mjs"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "@mapbox/vector-tile": "^3.0.0",
+    "@turf/bbox-polygon": "^7.4.0",
+    "@turf/boolean-intersects": "^7.4.0",
+    "@turf/simplify": "^7.4.0",
+    "concurrently": "^9.1.2",
+    "pbf": "^3.2.1"
   }
 }

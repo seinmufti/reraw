@@ -1,94 +1,154 @@
-import { ERBIL_MIN_ZOOM } from "@shared/types";
-import type { Map } from "maplibre-gl";
+import { ERBIL_DEFAULT_ZOOM, ERBIL_MIN_ZOOM } from "@shared/types";
+import type { DataDrivenPropertyValueSpecification, Map } from "maplibre-gl";
 
-/** Minor / service / track strokes visible from city-wide zoom (Bright defaults ~13.5+). */
+const Z0 = ERBIL_MIN_ZOOM;
+const ZDEF = ERBIL_DEFAULT_ZOOM;
+const Z_HANDOFF = 12.75;
+const Z_FULL = 13.25;
+
+const asWidth = (expr: unknown) =>
+  expr as DataDrivenPropertyValueSpecification<number>;
+
+const MVT_MINOR_OPACITY = [
+  "interpolate",
+  ["linear"],
+  ["zoom"],
+  Z0,
+  0,
+  Z_HANDOFF,
+  0,
+  Z_FULL,
+  1,
+] as DataDrivenPropertyValueSpecification<number>;
+
 const MINOR_LINE_WIDTH = [
   "interpolate",
   ["exponential", 1.2],
   ["zoom"],
-  ERBIL_MIN_ZOOM,
-  0.65,
-  11,
-  1,
-  12.5,
-  1.8,
+  Z0,
+  1.6,
+  ZDEF,
+  2.6,
+  12,
+  2.4,
   14,
-  2.5,
+  3,
   20,
-  11.5,
-] as const;
+  12,
+];
 
 const MINOR_CASING_WIDTH = [
   "interpolate",
   ["exponential", 1.2],
   ["zoom"],
-  ERBIL_MIN_ZOOM,
-  1,
-  11,
-  1.4,
+  Z0,
+  2.2,
+  ZDEF,
+  3.2,
   13,
-  2.5,
+  3.5,
   14,
   4,
   20,
-  15,
-] as const;
+  16,
+];
 
-const MINOR_CASING_OPACITY = [
+const PATH_LINE_WIDTH = [
   "interpolate",
-  ["linear"],
+  ["exponential", 1.2],
   ["zoom"],
-  ERBIL_MIN_ZOOM,
-  0.85,
-  11,
-  1,
-] as const;
+  Z0,
+  1.1,
+  ZDEF,
+  1.5,
+  13,
+  1.8,
+  15,
+  2.5,
+  20,
+  4,
+];
 
-function isMinorRoadLayerId(id: string): boolean {
+function isDetailRoadLayerId(id: string): boolean {
   const lower = id.toLowerCase();
-  if (lower.includes("link")) return false;
-  if (lower.includes("minor") || lower.includes("service-track")) {
-    return (
-      lower.startsWith("highway-") ||
-      lower.startsWith("tunnel-") ||
-      lower.startsWith("bridge-")
-    );
+  if (
+    lower.includes("name") ||
+    lower.includes("label") ||
+    lower.includes("rail") ||
+    lower.includes("motorway")
+  ) {
+    return false;
   }
+  const isRoadLayer =
+    lower.startsWith("highway-") ||
+    lower.startsWith("road_") ||
+    lower.startsWith("tunnel_") ||
+    lower.startsWith("tunnel-") ||
+    lower.startsWith("bridge_") ||
+    lower.startsWith("bridge-");
+  if (!isRoadLayer) return false;
+
   return (
-    lower.includes("residential") ||
-    lower.includes("living") ||
-    lower.includes("alley") ||
-    lower.includes("footway") ||
-    (lower.includes("path") && lower.startsWith("highway-"))
+    lower.includes("minor") ||
+    lower.includes("service") ||
+    lower.includes("track") ||
+    lower.includes("path") ||
+    lower.includes("street") ||
+    lower.includes("pedestrian")
   );
 }
 
-function boostMinorRoadPaint(map: Map, layerId: string) {
+function boostDetailRoadPaint(map: Map, layerId: string) {
   const lower = layerId.toLowerCase();
   try {
     if (lower.includes("casing")) {
-      map.setPaintProperty(layerId, "line-width", MINOR_CASING_WIDTH);
-      map.setPaintProperty(layerId, "line-opacity", MINOR_CASING_OPACITY);
+      if (
+        !lower.includes("minor") &&
+        !lower.includes("service") &&
+        !lower.includes("street")
+      ) {
+        return;
+      }
+      map.setPaintProperty(layerId, "line-width", asWidth(MINOR_CASING_WIDTH));
+      map.setPaintProperty(layerId, "line-opacity", MVT_MINOR_OPACITY);
       return;
     }
-    if (lower.includes("minor") || lower.includes("service-track")) {
-      map.setPaintProperty(layerId, "line-width", MINOR_LINE_WIDTH);
+
+    if (lower.includes("path") || lower.includes("pedestrian")) {
+      map.setPaintProperty(layerId, "line-width", asWidth(PATH_LINE_WIDTH));
+      map.setPaintProperty(layerId, "line-opacity", MVT_MINOR_OPACITY);
+      return;
+    }
+
+    if (
+      lower.includes("minor") ||
+      lower.includes("service") ||
+      lower.includes("street")
+    ) {
+      map.setPaintProperty(layerId, "line-width", asWidth(MINOR_LINE_WIDTH));
+      map.setPaintProperty(layerId, "line-color", "#fff");
+      map.setPaintProperty(layerId, "line-opacity", MVT_MINOR_OPACITY);
     }
   } catch {
-    /* paint not supported on this layer */
+    /* layer may not support property */
   }
 }
 
-/** Show residential / service / path layers from the city-wide zoom level upward. */
 export function boostMinorRoadVisibility(map: Map) {
   for (const layer of map.getStyle()?.layers ?? []) {
     if (layer.type !== "line") continue;
-    if (!isMinorRoadLayerId(layer.id)) continue;
+    if (!isDetailRoadLayerId(layer.id)) continue;
     try {
       map.setLayerZoomRange(layer.id, ERBIL_MIN_ZOOM, 24);
-      boostMinorRoadPaint(map, layer.id);
+      boostDetailRoadPaint(map, layer.id);
     } catch {
       /* unsupported layer */
     }
   }
+}
+
+export function scheduleMinorRoadBoost(map: Map) {
+  const run = () => boostMinorRoadVisibility(map);
+  run();
+  map.once("idle", run);
 }

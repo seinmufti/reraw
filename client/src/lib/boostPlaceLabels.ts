@@ -1,5 +1,5 @@
 import { ERBIL_MIN_ZOOM } from "@shared/types";
-import type { Map } from "maplibre-gl";
+import type { FilterSpecification, Map } from "maplibre-gl";
 import { ERBIL_M120_REGION } from "./erbilM120Region";
 
 const INNER_PLACE_LAYERS = new Set(["label_other", "label_village"]);
@@ -23,7 +23,7 @@ export function boostPlaceLabelVisibility(map: Map) {
         "all",
         baseFilter,
         ["within", ERBIL_M120_REGION],
-      ]);
+      ] as FilterSpecification);
 
       map.setLayoutProperty(id, "text-allow-overlap", false);
       map.setLayoutProperty(id, "text-optional", true);

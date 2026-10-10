@@ -17,11 +17,9 @@ npm install
 npm run dev
 ```
 
-- Vite (strict port **5177**, `host: true`) proxies `/api` to the API on **5178**.
+- Dev runs on one port, **5177** (`host: true`): Vite serves the app and the Express API (`/api`) as middleware.
 - Designation: [`.cursor/designation.json`](.cursor/designation.json)
-- **Phone / LAN:** use the `Network:` URL from the terminal (same Wi‑Fi as this PC). If the page never loads, allow inbound TCP **5177** in Windows Firewall (run PowerShell **as Administrator**):
-
-  `netsh advfirewall firewall add rule name="Reraw Dev 5177" dir=in action=allow protocol=TCP localport=5177`
+- On another device on the same network, use the **Network:** URL printed when you run `npm run dev`.
 
 ## Production
 
@@ -30,7 +28,7 @@ npm run build
 npm start
 ```
 
-Serves the built client from `client/dist` and the API on port **5178** (override with `PORT`).
+Serves the built client from `client/dist` and the API on port **5177** (override with `PORT`).
 
 ## Data files
 
