@@ -39,14 +39,14 @@ const STOPS_SOURCE = "reraw-stops";
 const DRAFT_SOURCE = "reraw-draft";
 const HOVER_SOURCE = "reraw-hover-segment";
 const DRAFT_PATH_ID = "__draft__";
-const PHONE_ZOOM_OUT = 0.5;
+const PHONE_ZOOM_IN = 0.05;
 
 const PHONE_MAX_WIDTH_PX = 767;
 
-/** Phone-sized maps (real phones and the PC phone frame) get a slightly wider view of the city. */
+/** Phone-sized maps (real phones and the PC phone frame) start a little closer in. */
 function startZoom(container: HTMLElement | null) {
   const isPhoneSized = (container?.clientWidth ?? 0) <= PHONE_MAX_WIDTH_PX;
-  return isPhoneSized ? ERBIL_DEFAULT_ZOOM - PHONE_ZOOM_OUT : ERBIL_DEFAULT_ZOOM;
+  return isPhoneSized ? ERBIL_DEFAULT_ZOOM + PHONE_ZOOM_IN : ERBIL_DEFAULT_ZOOM;
 }
 
 function upsertGeoJsonSource(map: Map, id: string, data: GeoJSON.GeoJSON) {
@@ -114,7 +114,7 @@ export function MapLibreMapCanvas({
       minZoom: ERBIL_MIN_ZOOM,
       maxZoom: ERBIL_MAX_ZOOM,
       maxBounds: ERBIL_MAX_BOUNDS,
-      attributionControl: { compact: true },
+      attributionControl: false,
       fadeDuration: 0,
     });
     map.addControl(new NavigationControl({ visualizePitch: false }), "top-right");
@@ -366,7 +366,7 @@ export function MapLibreMapCanvas({
         variant="secondary"
         aria-label={t("resetMapView")}
         title={t("resetMapView")}
-        className="absolute bottom-12 right-3 z-10 border-0 bg-[#5f6368] text-white shadow-md hover:bg-[#494c50]"
+        className="absolute right-3 bottom-3 z-10 border-0 bg-[#5f6368] text-white shadow-md hover:bg-[#494c50]"
         onClick={resetView}
       >
         <LocateFixed className="h-5 w-5" />

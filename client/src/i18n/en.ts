@@ -14,6 +14,10 @@ const en = {
   adminTitle: "Reraw Admin",
   adminPcOnly:
     "You need a PC to open admin. Open this page on a desktop or laptop.",
+  adminPassword: "Password",
+  adminPasswordHint: "Enter the admin password to continue.",
+  adminPasswordWrong: "Wrong password.",
+  adminUnlock: "Unlock",
   backToRoutes: "Routes",
   newRoute: "New",
   saveRoute: "Save route",
@@ -48,6 +52,7 @@ const en = {
   developedBy: "Developed by",
   nordlysBrand: "nordlys",
   copyrightNotice: "© {year} nordlys. All rights reserved.",
+  mapCredit: "Map: OpenFreeMap · © OpenMapTiles · OpenStreetMap",
 } as const;
 
 export type I18nKey = keyof typeof en;

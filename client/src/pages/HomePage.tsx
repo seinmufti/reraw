@@ -30,7 +30,23 @@ type RoutesPanelProps = {
   onSelectRoute: (routeId: string | null) => void;
 };
 
-function RoutesPanel({
+function RoutesHeader({
+  selectedRouteId,
+  onSelectRoute,
+}: Pick<RoutesPanelProps, "selectedRouteId" | "onSelectRoute">) {
+  return (
+    <div className="sticky top-0 z-10 flex items-center justify-between bg-background px-4 pt-4 pb-2">
+      <h2 className="text-sm font-semibold">{t("routes")}</h2>
+      {selectedRouteId && (
+        <Button variant="ghost" size="sm" onClick={() => onSelectRoute(null)}>
+          {t("showAllRoutes")}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function RouteCards({
   routes,
   loading,
   error,
@@ -38,15 +54,7 @@ function RoutesPanel({
   onSelectRoute,
 }: RoutesPanelProps) {
   return (
-    <div className="space-y-3 p-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold">{t("routes")}</h2>
-        {selectedRouteId && (
-          <Button variant="ghost" size="sm" onClick={() => onSelectRoute(null)}>
-            {t("showAllRoutes")}
-          </Button>
-        )}
-      </div>
+    <div className="space-y-3 px-4 pb-8">
       {loading && (
         <p className="text-sm text-muted-foreground">{t("loading")}</p>
       )}
@@ -102,7 +110,6 @@ export function HomePage() {
     routeId: string;
     stopId: string;
   } | null>(null);
-
   const routesQuery = useQuery({ queryKey: ["routes"], queryFn: api.getRoutes });
 
   const routes = routesQuery.data ?? [];
@@ -116,56 +123,62 @@ export function HomePage() {
   const loading = routesQuery.isLoading;
   const error = routesQuery.isError;
 
-  const routesPanel = (
-    <RoutesPanel
-      routes={routes}
-      loading={loading}
-      error={error}
-      selectedRouteId={selectedRouteId}
-      onSelectRoute={setSelectedRouteId}
-    />
-  );
-
   return (
-    <div className="flex min-h-full flex-col">
-      <div className="shrink-0 border-b p-4">
-        <AppTitle />
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="flex h-[70%] min-h-0 shrink-0 flex-col min-[768px]:h-[70cqh]">
+        <div className="flex shrink-0 items-center justify-center border-b p-4">
+          <AppTitle className="text-center" />
+        </div>
+        <div className="relative min-h-0 flex-1">
+          <MapCanvas
+            routes={routes}
+            selectedRouteId={selectedRouteId}
+            onStopClick={(routeId, stopId) => setStopPopup({ routeId, stopId })}
+            className="absolute inset-0 h-full w-full"
+          />
+          {popupStop && (
+            <Card className="absolute bottom-4 left-4 z-10 max-w-xs shadow-lg">
+              <CardHeader className="p-3 pb-1">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <MapPin className="h-4 w-4" />
+                  {popupStop.name}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 p-3 pt-0 text-sm">
+                <p>{stopTypeLabel(popupStop.type)}</p>
+                {popupStop.notes && (
+                  <p className="text-muted-foreground">{popupStop.notes}</p>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setStopPopup(null)}
+                >
+                  {t("cancel")}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
-
-      <div className="relative h-[48svh] min-h-[220px] shrink-0">
-        <MapCanvas
-          routes={routes}
-          selectedRouteId={selectedRouteId}
-          onStopClick={(routeId, stopId) => setStopPopup({ routeId, stopId })}
-          className="absolute inset-0 h-full w-full"
-        />
-        {popupStop && (
-          <Card className="absolute bottom-4 left-4 z-10 max-w-xs shadow-lg">
-            <CardHeader className="p-3 pb-1">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <MapPin className="h-4 w-4" />
-                {popupStop.name}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 p-3 pt-0 text-sm">
-              <p>{stopTypeLabel(popupStop.type)}</p>
-              {popupStop.notes && (
-                <p className="text-muted-foreground">{popupStop.notes}</p>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setStopPopup(null)}
-              >
-                {t("cancel")}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+      <div className="flex h-[30%] min-h-0 shrink-0 flex-col min-[768px]:h-[30cqh]">
+        <div className="routes-scroll min-h-0 flex-1 overflow-y-auto overscroll-y-contain border-t [-webkit-overflow-scrolling:touch]">
+          <div>
+            <RoutesHeader
+              selectedRouteId={selectedRouteId}
+              onSelectRoute={setSelectedRouteId}
+            />
+            <RouteCards
+              routes={routes}
+              loading={loading}
+              error={error}
+              selectedRouteId={selectedRouteId}
+              onSelectRoute={setSelectedRouteId}
+            />
+          </div>
+          <SiteFooter />
+        </div>
       </div>
-
-      <div className="shrink-0 border-t">{routesPanel}</div>
-      <SiteFooter />
     </div>
   );
 }

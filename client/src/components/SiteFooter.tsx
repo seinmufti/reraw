@@ -10,19 +10,29 @@ export function SiteFooter() {
   );
 
   return (
-    <footer className="mt-auto shrink-0 border-t bg-background px-4 py-3 pb-8">
+    <footer className="mt-auto shrink-0 border-t bg-background px-4 py-3">
       <div className="mx-auto flex max-w-md flex-col items-center gap-1">
         <p
-          className="flex flex-wrap items-center justify-center gap-x-1.5 text-xs text-muted-foreground"
+          className="flex flex-wrap items-center justify-center gap-x-3 text-2xl text-muted-foreground"
           aria-label="Made in Kurdistan"
         >
           <span>Made in</span>
-          <span className="inline-flex rounded-sm bg-neutral-950 px-1.5 py-0.5 text-[13px] font-semibold tracking-wide">
-            <span className="text-[#CE1126]">Kur</span>
-            <span className="text-white">d</span>
-            <span className="text-[#F8C300]">i</span>
-            <span className="text-white">s</span>
-            <span className="text-[#27823A]">tan</span>
+          <span className="inline-flex text-[26px] font-semibold tracking-wide">
+            <span className="text-[#CE1126] [-webkit-text-stroke:0.7px_#111] [paint-order:stroke_fill]">
+              Kur
+            </span>
+            <span className="text-white [-webkit-text-stroke:0.7px_#111] [paint-order:stroke_fill]">
+              d
+            </span>
+            <span className="text-[#F8C300] [-webkit-text-stroke:0.7px_#111] [paint-order:stroke_fill]">
+              i
+            </span>
+            <span className="text-white [-webkit-text-stroke:0.7px_#111] [paint-order:stroke_fill]">
+              s
+            </span>
+            <span className="text-[#27823A] [-webkit-text-stroke:0.7px_#111] [paint-order:stroke_fill]">
+              tan
+            </span>
           </span>
         </p>
         <a
@@ -44,6 +54,7 @@ export function SiteFooter() {
           </span>
         </a>
         <p className="text-[10px] text-muted-foreground">{copyright}</p>
+        <p className="text-[10px] text-muted-foreground">{t("mapCredit")}</p>
       </div>
     </footer>
   );

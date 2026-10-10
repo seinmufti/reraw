@@ -20,7 +20,7 @@ export function PhoneFrame({ children }: { children: ReactNode }) {
         className="relative overflow-hidden rounded-[2rem] bg-background"
         style={screenStyle}
       >
-        <div className="flex h-full min-h-0 w-full flex-col overflow-y-auto">
+        <div className="flex h-full min-h-0 w-full flex-col overflow-hidden [container-type:size]">
           {children}
         </div>
         <div
