@@ -8,12 +8,13 @@ import {
 } from "@shared/types";
 import {
   GeoJSONSource,
+  LngLatBounds,
   Map,
   NavigationControl,
   type MapMouseEvent,
 } from "maplibre-gl";
 import { LocateFixed } from "lucide-react";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useRoadPaths } from "@/hooks/useRoadPaths";
 import { t } from "@/i18n/en";
@@ -23,6 +24,7 @@ import { installDetailRoadsOverlay } from "@/lib/detailRoadsOverlay";
 import { installSecondaryRoadsOverlay } from "@/lib/secondaryRoadsOverlay";
 import { boostPlaceLabelVisibility } from "@/lib/boostPlaceLabels";
 import { installNeighborhoodLabelsOverlay } from "@/lib/neighborhoodLabelsOverlay";
+import { applyGoogleMapStyle } from "@/lib/googleMapStyle";
 import { MAP_STYLE_URL, mapStyleFallback } from "@/lib/mapStyle";
 import {
   allStopsCollection,
@@ -42,6 +44,7 @@ const DRAFT_PATH_ID = "__draft__";
 const PHONE_ZOOM_IN = 0.05;
 
 const PHONE_MAX_WIDTH_PX = 767;
+const MAP_LOAD_TIMEOUT_MS = 15000;
 
 /** Phone-sized maps (real phones and the PC phone frame) start a little closer in. */
 function startZoom(container: HTMLElement | null) {
@@ -70,6 +73,8 @@ export function MapLibreMapCanvas({
 }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
+  const [mapStatus, setMapStatus] = useState<"loading" | "ready" | "error">("loading");
+  const hadSelectionRef = useRef(false);
   const roadPathLists = useMemo(
     () => [
       ...routes.map((route) => ({
@@ -108,7 +113,7 @@ export function MapLibreMapCanvas({
     if (!el || mapRef.current) return;
 
     let cancelled = false;
-    let map: Map | null = null;
+    let createdMap: Map | null = null;
     let resizeObserver: ResizeObserver | null = null;
     const extraCleanups: Array<() => void> = [];
 
@@ -136,7 +141,7 @@ export function MapLibreMapCanvas({
       const node = containerRef.current;
       if (node.clientWidth < 2 || node.clientHeight < 2) return;
 
-    map = new Map({
+    const map = new Map({
       container: node,
       style: MAP_STYLE_URL,
       center: ERBIL_CENTER,
@@ -151,12 +156,25 @@ export function MapLibreMapCanvas({
     map.addControl(new NavigationControl({ visualizePitch: false }), "top-right");
     let styleFallbackApplied = false;
     let styleHasLoaded = false;
+    let mapLoaded = false;
+    const loadTimer = window.setTimeout(() => {
+      if (!mapLoaded) setMapStatus("error");
+    }, MAP_LOAD_TIMEOUT_MS);
+    extraCleanups.push(() => window.clearTimeout(loadTimer));
+    map.on("load", () => {
+      mapLoaded = true;
+      setMapStatus("ready");
+    });
     map.on("error", (e) => {
       if (styleFallbackApplied || styleHasLoaded) return;
       // Tile/glyph/source glitches are common; only fall back if the style never loads.
       const sourceId =
         "sourceId" in e && typeof e.sourceId === "string" ? e.sourceId : "";
       if (sourceId) return;
+      if (styleFallbackApplied) {
+        if (!mapLoaded) setMapStatus("error");
+        return;
+      }
       styleFallbackApplied = true;
       map.setStyle(mapStyleFallback);
     });
@@ -288,6 +306,7 @@ export function MapLibreMapCanvas({
 
     map.on("style.load", () => {
       styleHasLoaded = true;
+      applyGoogleMapStyle(map);
       scheduleMinorRoadBoost(map);
       scheduleSecondaryRoadBoost(map);
       boostPlaceLabelVisibility(map);
@@ -322,6 +341,7 @@ export function MapLibreMapCanvas({
       map.getCanvas().style.cursor = "";
     });
 
+    createdMap = map;
     mapRef.current = map;
     attachResize(map, node);
     };
@@ -335,7 +355,7 @@ export function MapLibreMapCanvas({
       readyObserver.disconnect();
       resizeObserver?.disconnect();
       for (const clean of extraCleanups) clean();
-      map?.remove();
+      createdMap?.remove();
       mapRef.current = null;
     };
   }, []);
@@ -388,6 +408,32 @@ export function MapLibreMapCanvas({
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+    if (!selectedRouteId) {
+      if (hadSelectionRef.current) {
+        hadSelectionRef.current = false;
+        map.flyTo({ center: ERBIL_CENTER, zoom: startZoom(containerRef.current), duration: 700 });
+      }
+      return;
+    }
+    const route = routes.find((r) => r.id === selectedRouteId);
+    if (!route) return;
+    const coords: [number, number][] =
+      roadPaths[route.id] ?? route.path?.map((p) => [p.lng, p.lat] as [number, number]) ?? [];
+    const points = coords.length >= 2 ? coords : route.waypoints.map((w) => [w.lng, w.lat] as [number, number]);
+    if (points.length === 0) return;
+    const bounds = points.reduce(
+      (b, c) => b.extend(c),
+      new LngLatBounds(points[0], points[0]),
+    );
+    hadSelectionRef.current = true;
+    map.fitBounds(bounds, { padding: 48, maxZoom: 15, duration: 700 });
+    // Only refit when the selection or its geometry changes, not on every routes refetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRouteId, routes, roadPaths[selectedRouteId ?? ""]?.length]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
     map.getCanvas().style.cursor = clickMode === "view" ? "" : "crosshair";
   }, [clickMode]);
 
@@ -402,6 +448,14 @@ export function MapLibreMapCanvas({
   return (
     <div className={`relative ${className ?? "h-full w-full min-h-[320px]"}`}>
       <div ref={containerRef} className="reraw-map h-full w-full" />
+      {mapStatus !== "ready" && (
+        <div
+          role={mapStatus === "error" ? "alert" : "status"}
+          className={`absolute inset-0 z-10 flex items-center justify-center bg-muted/80 p-6 text-center text-sm text-muted-foreground ${mapStatus === "loading" ? "pointer-events-none animate-pulse" : ""}`}
+        >
+          {mapStatus === "error" ? t("mapLoadError") : t("mapLoading")}
+        </div>
+      )}
       <Button
         type="button"
         size="icon"

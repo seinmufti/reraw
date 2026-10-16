@@ -1,4 +1,7 @@
-const en = {
+import { ckb } from "./ckb";
+import { getLang } from "./lang";
+
+export const en = {
   appName: "Reraw",
   routes: "Routes",
   noRoutes: "Routes will be added soon.",
@@ -52,11 +55,20 @@ const en = {
   developedBy: "Developed by",
   nordlysBrand: "nordlys",
   copyrightNotice: "© {year} nordlys. All rights reserved.",
+  close: "Close",
+  switchLanguage: "کوردی",
+  pageTitle: "Reraw — Erbil bus routes",
+  pageDescription:
+    "See where each Erbil bus line goes, which neighborhoods it serves, and where buses stop.",
+  mapLoading: "Loading map…",
+  mapLoadError: "The map could not load. Check your internet connection.",
+  madeIn: "Made in",
   mapCredit: "Map: OpenFreeMap · © OpenMapTiles · OpenStreetMap",
 } as const;
 
 export type I18nKey = keyof typeof en;
 
 export function t(key: I18nKey): string {
+  if (getLang() === "ckb") return ckb[key] ?? en[key];
   return en[key];
 }
